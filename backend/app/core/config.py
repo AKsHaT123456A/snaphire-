@@ -1,8 +1,18 @@
+import os
 from pydantic_settings import BaseSettings
 
 
+def _normalize_asyncpg(url: str) -> str:
+    """Ensure the async engine gets +asyncpg even if the env var is bare postgresql://."""
+    if url.startswith("postgres://") and not url.startswith("postgresql://"):
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql://") and "+" not in url.split("://")[0]:
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
+
+
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql+asyncpg://snaphire:snaphire123@db:5432/snaphire"
+    DATABASE_URL: str
     REDIS_URL: str = "redis://redis:6379"
     SECRET_KEY: str = "snaphire-super-secret-jwt-key-change-in-prod"
     ALGORITHM: str = "HS256"
@@ -11,5 +21,28 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
+    @property
+    def ASYNC_DATABASE_URL(self) -> str:
+        return _normalize_asyncpg(self.DATABASE_URL)
 
-settings = Settings()
+    @property
+    def SYNC_DATABASE_URL(self) -> str:
+        url = self.ASYNC_DATABASE_URL
+        for async_prefix, sync_prefix in (
+            ("postgresql+asyncpg://", "postgresql+psycopg2://"),
+            ("postgresql+asyncpg+ssl://", "postgresql+psycopg2://"),
+        ):
+            if url.startswith(async_prefix):
+                return url.replace(async_prefix, sync_prefix, 1)
+        return url
+
+
+# Provide a local-only default when running inside Docker Compose so that
+# the container doesn't crash immediately when .env is missing.
+default_url = (
+    "postgresql+asyncpg://snaphire:snaphire123@db:5432/snaphire"
+    if not os.getenv("DATABASE_URL")
+    else None
+)
+
+settings = Settings(DATABASE_URL=default_url) if default_url else Settings()
