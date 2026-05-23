@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#FF6B00"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.snaphire.app"
@@ -22,6 +24,12 @@
         "backgroundColor": "#FF6B00"
       },
       "package": "com.snaphire.app"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "45abe17e-5505-40a3-9042-19b2fba80946"
+      }
+    },
+    "owner": "akshatmis"
   }
 }

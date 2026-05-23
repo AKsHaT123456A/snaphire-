@@ -1,13 +1,32 @@
 import os
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from pydantic_settings import BaseSettings
 
 
 def _normalize_asyncpg(url: str) -> str:
     """Ensure the async engine gets +asyncpg even if the env var is bare postgresql://."""
     if url.startswith("postgres://") and not url.startswith("postgresql://"):
-        return url.replace("postgres://", "postgresql+asyncpg://", 1)
-    if url.startswith("postgresql://") and "+" not in url.split("://")[0]:
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://") and "+" not in url.split("://")[0]:
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    # Strip channel_binding=require because asyncpg doesn't support it (Neon adds it)
+    parsed = urlparse(url)
+    query_params = parse_qs(parsed.query)
+    if "channel_binding" in query_params:
+        del query_params["channel_binding"]
+        new_query = urlencode(query_params, doseq=True)
+        url = urlunparse(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment,
+            )
+        )
+
     return url
 
 
