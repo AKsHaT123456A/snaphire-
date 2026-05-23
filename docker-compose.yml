@@ -33,6 +33,7 @@ services:
       - "8001:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://snaphire:snaphire123@db:5432/snaphire
+      SYNC_DATABASE_URL: postgresql+psycopg2://snaphire:snaphire123@db:5432/snaphire
       REDIS_URL: redis://redis:6379
       SECRET_KEY: snaphire-super-secret-jwt-key-change-in-prod
       ALGORITHM: HS256
